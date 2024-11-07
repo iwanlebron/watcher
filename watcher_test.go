@@ -1,7 +1,6 @@
 package watcher
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,12 +13,12 @@ import (
 // the tests and returns a function that is used as
 // a teardown function when the tests are done.
 func setup(t testing.TB) (string, func()) {
-	testDir, err := ioutil.TempDir(".", "")
+	testDir, err := os.MkdirTemp(".", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(testDir, "file.txt"),
+	err = os.WriteFile(filepath.Join(testDir, "file.txt"),
 		[]byte{}, 0755)
 	if err != nil {
 		t.Fatal(err)
@@ -29,12 +28,12 @@ func setup(t testing.TB) (string, func()) {
 
 	for _, f := range files {
 		filePath := filepath.Join(testDir, f)
-		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+		if err := os.WriteFile(filePath, []byte{}, 0755); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	err = ioutil.WriteFile(filepath.Join(testDir, ".dotfile"),
+	err = os.WriteFile(filepath.Join(testDir, ".dotfile"),
 		[]byte{}, 0755)
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +45,7 @@ func setup(t testing.TB) (string, func()) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(testDirTwo, "file_recursive.txt"),
+	err = os.WriteFile(filepath.Join(testDirTwo, "file_recursive.txt"),
 		[]byte{}, 0755)
 	if err != nil {
 		t.Fatal(err)
@@ -71,14 +70,14 @@ func TestEventString(t *testing.T) {
 		info     os.FileInfo
 		expected string
 	}{
-		{nil, "???"},
+		{info: nil, expected: "???"},
 		{
-			&fileInfo{name: "f1", dir: true},
-			"DIRECTORY \"f1\" CREATE [/fake/path]",
+			info:     &fileInfo{name: "f1", dir: true},
+			expected: "DIRECTORY \"f1\" CREATE [/fake/path]",
 		},
 		{
-			&fileInfo{name: "f2", dir: false},
-			"FILE \"f2\" CREATE [/fake/path]",
+			info:     &fileInfo{name: "f2", dir: false},
+			expected: "FILE \"f2\" CREATE [/fake/path]",
 		},
 	}
 
@@ -106,7 +105,7 @@ func TestFileInfo(t *testing.T) {
 	if fInfo.Name() != "finfo" {
 		t.Fatalf("expected fInfo.Name() to be 'finfo', got %s", fInfo.Name())
 	}
-	if fInfo.IsDir() != true {
+	if !fInfo.IsDir() {
 		t.Fatalf("expected fInfo.IsDir() to be true, got %t", fInfo.IsDir())
 	}
 	if fInfo.Size() != 1 {
@@ -559,7 +558,7 @@ func TestEventAddFile(t *testing.T) {
 
 	for f := range files {
 		filePath := filepath.Join(testDir, f)
-		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+		if err := os.WriteFile(filePath, []byte{}, 0755); err != nil {
 			t.Error(err)
 		}
 	}
@@ -948,7 +947,6 @@ func TestClose(t *testing.T) {
 	if len(wf) != 0 {
 		t.Fatalf("expected len of wf to be 0, got %d", len(wf))
 	}
-
 }
 
 func TestWatchedFiles(t *testing.T) {
@@ -995,13 +993,13 @@ func TestOpsString(t *testing.T) {
 		want     Op
 		expected string
 	}{
-		{Create, "CREATE"},
-		{Write, "WRITE"},
-		{Remove, "REMOVE"},
-		{Rename, "RENAME"},
-		{Chmod, "CHMOD"},
-		{Move, "MOVE"},
-		{Op(10), "???"},
+		{want: Create, expected: "CREATE"},
+		{want: Write, expected: "WRITE"},
+		{want: Remove, expected: "REMOVE"},
+		{want: Rename, expected: "RENAME"},
+		{want: Chmod, expected: "CHMOD"},
+		{want: Move, expected: "MOVE"},
+		{want: Op(10), expected: "???"},
 	}
 
 	for _, tc := range testCases {

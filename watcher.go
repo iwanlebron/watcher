@@ -120,7 +120,8 @@ type Watcher struct {
 	wg     *sync.WaitGroup
 
 	// mu protects the following.
-	mu           *sync.Mutex
+	mu *sync.Mutex
+
 	ffh          []FilterFileHookFunc
 	running      bool
 	names        map[string]bool        // bool for recursive or not.
@@ -449,26 +450,31 @@ type fileInfo struct {
 	size    int64
 	mode    os.FileMode
 	modTime time.Time
-	sys     interface{}
+	sys     any
 	dir     bool
 }
 
 func (fs *fileInfo) IsDir() bool {
 	return fs.dir
 }
+
 func (fs *fileInfo) ModTime() time.Time {
 	return fs.modTime
 }
+
 func (fs *fileInfo) Mode() os.FileMode {
 	return fs.mode
 }
+
 func (fs *fileInfo) Name() string {
 	return fs.name
 }
+
 func (fs *fileInfo) Size() int64 {
 	return fs.size
 }
-func (fs *fileInfo) Sys() interface{} {
+
+func (fs *fileInfo) Sys() any {
 	return fs.sys
 }
 
@@ -637,14 +643,14 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 			select {
 			case <-cancel:
 				return
-			case evt <- Event{Write, path, path, info}:
+			case evt <- Event{Op: Write, Path: path, OldPath: path, FileInfo: info}:
 			}
 		}
 		if oldInfo.Mode() != info.Mode() {
 			select {
 			case <-cancel:
 				return
-			case evt <- Event{Chmod, path, path, info}:
+			case evt <- Event{Op: Chmod, Path: path, OldPath: path, FileInfo: info}:
 			}
 		}
 	}
@@ -682,14 +688,14 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 		select {
 		case <-cancel:
 			return
-		case evt <- Event{Create, path, "", info}:
+		case evt <- Event{Op: Create, Path: path, OldPath: "", FileInfo: info}:
 		}
 	}
 	for path, info := range removes {
 		select {
 		case <-cancel:
 			return
-		case evt <- Event{Remove, path, path, info}:
+		case evt <- Event{Op: Remove, Path: path, OldPath: path, FileInfo: info}:
 		}
 	}
 }
